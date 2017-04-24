@@ -9,7 +9,7 @@ spec:
     port: 80
     targetPort: http
   selector:
-    app: {{ template "fullname" . }}
+    app: {{ template "common.fullname" . }}
 {{- end -}}
 {{- define "common.service" -}}
 {{- template "common.util.merge" (append . "common.service.tpl") -}}
