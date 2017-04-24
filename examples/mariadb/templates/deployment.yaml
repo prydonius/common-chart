@@ -1,0 +1,62 @@
+{{- template "common.deployment" (list . "mariadb.deployment") -}}
+{{- define "mariadb.deployment" -}}
+{{- $fullname := include "fullname" . -}}
+spec:
+  template:
+    metadata:
+      annotations:
+        pod.alpha.kubernetes.io/init-containers: '
+          [
+            {
+              "name": "copy-custom-config",
+              "image": "{{ .Values.image.repository }}:{{ .Values.image.tag }}",
+              "imagePullPolicy": {{ .Values.image.pullPolicy | quote }},
+              "command": ["sh", "-c", "mkdir -p /bitnami/mariadb/conf && cp -n /bitnami/mariadb_config/my.cnf /bitnami/mariadb/conf/my_custom.cnf"],
+              "volumeMounts": [
+                {
+                  "name": "config",
+                  "mountPath": "/bitnami/mariadb_config"
+                },
+                {
+                  "name": "data",
+                  "mountPath": "/bitnami/mariadb"
+                }
+              ]
+            }
+          ]'
+    spec:
+      containers:
+      - {{ template "common.container" (list . "mariadb.deployment.container") }}
+      volumes:
+      - {{ template "common.volume.configMap" (list "config" $fullname) }}
+      - {{ template "common.volume.pvc" (list "data" $fullname .Values.persistence) }}
+{{- end -}}
+{{- define "mariadb.deployment.container" -}}
+{{- $fullname := include "fullname" . -}}
+env:
+- {{ template "common.envvar.secret" (list "MARIADB_ROOT_PASSWORD" $fullname "mariadb-root-password") }}
+- {{ template "common.envvar.value" (list "MARIADB_USER" .Values.mariadbUser) }}
+- {{ template "common.envvar.secret" (list "MARIADB_PASSWORD" $fullname "mariadb-password") }}
+- {{ template "common.envvar.value" (list "MARIADB_DATABASE" .Values.mariadbDatabase) }}
+- {{ template "common.envvar.value" (list "ALLOW_EMPTY_PASSWORD" "yes") }}
+ports:
+- name: mysql
+  containerPort: 3306
+livenessProbe:
+  exec:
+    command:
+    - mysqladmin
+    - ping
+  initialDelaySeconds: 30
+  timeoutSeconds: 5
+readinessProbe:
+  exec:
+    command:
+    - mysqladmin
+    - ping
+  initialDelaySeconds: 5
+  timeoutSeconds: 1
+volumeMounts:
+- name: data
+  mountPath: /bitnami/mariadb
+{{- end -}}
