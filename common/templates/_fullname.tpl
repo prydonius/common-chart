@@ -18,11 +18,12 @@ The applied order is: "global prefix + prefix + name + suffix + global suffix"
 Usage: 'name: "{{- template "common.fullname" . -}}"'
 */ -}}
 {{- define "common.fullname"}}
+  {{- $global := default (dict) .Values.global -}}
   {{- $base := default (printf "%s-%s" .Release.Name .Chart.Name) .Values.fullnameOverride -}}
-  {{- $gpre := default "" .Values.global.fullnamePrefix -}}
+  {{- $gpre := default "" $global.fullnamePrefix -}}
   {{- $pre := default "" .Values.fullnamePrefix -}}
   {{- $suf := default "" .Values.fullnameSuffix -}}
-  {{- $gsuf := default "" .Values.global.fullnameSuffix -}}
+  {{- $gsuf := default "" $global.fullnameSuffix -}}
   {{- $name := print $gpre $pre $base $suf $gsuf -}}
   {{- $name | lower | trunc 54 | trimSuffix "-" -}}
 {{- end -}}

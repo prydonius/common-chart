@@ -1,0 +1,10 @@
+{{- template "common.service" (list . "nginx.service") -}}
+{{- define "nginx.service" }}
+## Define overrides for your Service resource here, e.g.
+# metadata:
+#   labels:
+#     custom: label
+# spec:
+#   ports:
+#   - port: 8080
+{{- end -}}

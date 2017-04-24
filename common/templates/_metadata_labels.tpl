@@ -21,8 +21,8 @@ common.labels.standard prints the standard Helm labels.
 The standard labels are frequently used in metadata.
 */ -}}
 {{- define "common.labels.standard" -}}
-app: {{template "common.fullname" .}}
+app: {{ template "common.fullname" . }}
+chart: {{ template "common.chartref" . }}
 heritage: {{ .Release.Service | quote }}
 release: {{ .Release.Name | quote }}
-chart: {{template "common.chartref" . }}
 {{- end -}}

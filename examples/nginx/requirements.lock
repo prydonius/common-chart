@@ -1,0 +1,10 @@
+dependencies:
+- condition: ""
+  enabled: false
+  import-values: null
+  name: common
+  repository: file://../../common
+  tags: null
+  version: 0.0.1
+digest: sha256:23d45a1fe72813d34b7bbad2992617d887c3b702bc563020015cc907ac795dd6
+generated: 2017-04-21T11:25:42.716846119+01:00

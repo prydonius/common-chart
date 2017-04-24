@@ -1,0 +1,5 @@
+{{- template "common.deployment" (list . "nginx.deployment") -}}
+{{- define "nginx.deployment" }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+{{- end -}}
