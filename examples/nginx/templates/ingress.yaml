@@ -2,7 +2,7 @@
 {{- template "common.ingress" (list . "nginx.ingress") -}}
 {{- end -}}
 {{- define "nginx.ingress" }}
-## Define overrides for your Service resource here, e.g.
+## Define overrides for your Ingress resource here, e.g.
 # metadata:
 #   labels:
 #     custom: label
