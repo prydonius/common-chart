@@ -1,11 +1,11 @@
 {{- template "common.deployment" (list . "mariadb.deployment") -}}
 {{- define "mariadb.deployment" -}}
-{{- $fullname := include "fullname" . -}}
+{{- $fullname := include "common.fullname" . -}}
 spec:
   template:
     metadata:
       annotations:
-        pod.alpha.kubernetes.io/init-containers: '
+        pod.beta.kubernetes.io/init-containers: '
           [
             {
               "name": "copy-custom-config",
@@ -32,7 +32,7 @@ spec:
       - {{ template "common.volume.pvc" (list "data" $fullname .Values.persistence) }}
 {{- end -}}
 {{- define "mariadb.deployment.container" -}}
-{{- $fullname := include "fullname" . -}}
+{{- $fullname := include "common.fullname" . -}}
 env:
 - {{ template "common.envvar.secret" (list "MARIADB_ROOT_PASSWORD" $fullname "mariadb-root-password") }}
 - {{ template "common.envvar.value" (list "MARIADB_USER" .Values.mariadbUser) }}

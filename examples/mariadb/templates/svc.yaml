@@ -1,7 +1,6 @@
 {{- template "common.service" (list . "mariadb.service") -}}
 {{- define "mariadb.service" }}
 spec:
-  type: {{ .Values.serviceType }}
   ports:
   - name: mysql
     port: 3306

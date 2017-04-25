@@ -5,14 +5,6 @@ imagePullPolicy: {{ .Values.image.pullPolicy }}
 ports:
 - name: http
   containerPort: 80
-livenessProbe:
-  httpGet:
-    path: /
-    port: 80
-readinessProbe:
-  httpGet:
-    path: /
-    port: 80
 resources:
 {{ toYaml .Values.resources | indent 2 }}
 {{- end -}}
