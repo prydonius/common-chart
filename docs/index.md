@@ -27,8 +27,8 @@ define _basic_ versions of these resources. They allow you to extend and modify
 just what you need, without having to copy around lots of boilerplate.
 
 To make use of these templates you must define a template that will extend the
-base template. The name of this template is then passed to the base template
-along with the root context, for example:
+base template (though it can be empty). The name of this template is then passed
+to the base template, for example:
 
 ```yaml
 {{- template "common.service" (list . "mychart.service") -}}
@@ -42,6 +42,15 @@ along with the root context, for example:
 #   - port: 8080
 {{- end -}}
 ```
+
+Note that the `common.service` template defines two parameters:
+
+  - The root context (usually `.`)
+  - A template name containing the service definition overrides
+
+A limitation of the Go template library is that a template can only take a
+single argument. The `list` function is used to workaround this by constructing
+a list or array of arguments that is passed to the template.
 
 The `common.service` template is responsible for rendering the templates with
 the root context and merging any overrides. As you can see, this makes it very
@@ -96,11 +105,7 @@ spec:
 {{- end -}}
 ```
 
-The above template defines _two_ services: a web service and a mail service. Note
-that the `common.service` template defines two parameters:
-
-  - The global context (usually `.`)
-  - A template name containing the service definition overrides
+The above template defines _two_ services: a web service and a mail service.
 
 The most important part of a service definition is the `ports` object, which
 defines the ports that this service will listen on. Most of the time,
