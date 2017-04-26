@@ -25,7 +25,23 @@ the common chart are:
 
 ## Example Usage
 
-Create a new chart:
+### Tiller version
+
+The common chart uses an experimental version of Tiller that adds to the
+template function map. Before you start using the common chart, you must change
+your Tiller image:
+
+```
+$ helm init --tiller-image prydonius/tiller:merge --upgrade
+```
+
+### Run an example
+
+```
+$ helm dep update examples/nginx && helm install --debug examples/nginx
+```
+
+### Create a new chart
 
 ```
 $ helm create mychart
@@ -35,7 +51,7 @@ Include the common chart as a subchart:
 
 ```console
 $ cd mychart/charts
-$ helm fetch common
+$ cp path/to/repo/common -r .
 ```
 
 Use the `common.*` definitions in your code.
