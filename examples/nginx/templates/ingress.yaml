@@ -1,7 +1,7 @@
 {{- if .Values.ingress.enabled -}}
 {{- template "common.ingress" (list . "nginx.ingress") -}}
 {{- end -}}
-{{- define "nginx.ingress" }}
+{{- define "nginx.ingress" -}}
 ## Define overrides for your Ingress resource here, e.g.
 # metadata:
 #   labels:

@@ -1,5 +1,5 @@
 {{- template "common.service" (list . "mariadb.service") -}}
-{{- define "mariadb.service" }}
+{{- define "mariadb.service" -}}
 spec:
   ports:
   - name: mysql

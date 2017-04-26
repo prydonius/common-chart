@@ -32,7 +32,7 @@ along with the root context, for example:
 
 ```yaml
 {{- template "common.service" (list . "mychart.service") -}}
-{{- define "mychart.service" }}
+{{- define "mychart.service" -}}
 ## Define overrides for your Service resource here, e.g.
 # metadata:
 #   labels:
@@ -88,7 +88,6 @@ metadata:
     protocol: www
 spec:
   ports:                                        # composes the `ports` section of the service definition.
-  ports:
   - name: www
     port: 80
     targetPort: 8080
@@ -107,7 +106,7 @@ The most important part of a service definition is the `ports` object, which
 defines the ports that this service will listen on. Most of the time,
 `selector` is computed for you. But you can replace it or add to it.
 
-The output of running the above values through the earlier template is:
+The output of the example above is:
 
 ```yaml
 apiVersion: v1
@@ -115,7 +114,7 @@ kind: Service
 metadata:
   labels:
     app: release-name-service
-    chart: examples-0.1.0
+    chart: service-0.1.0
     heritage: Tiller
     protocol: mail
     release: release-name
@@ -138,7 +137,7 @@ kind: Service
 metadata:
   labels:
     app: release-name-service
-    chart: examples-0.1.0
+    chart: service-0.1.0
     heritage: Tiller
     protocol: www
     release: release-name
@@ -156,18 +155,18 @@ spec:
 ## `common.deployment`
 
 The `common.deployment` template defines a basic `Deployment`. Underneath the
-hood, it uses `common.container`.
+hood, it uses `common.container` (see next section).
 
-By default, the pod template within the deployment only defines a single `app`
-label as this is also used as the selector. The standard set of labels are not
-used as some of these can change during upgrades, which causes the replica sets
-and pods to not correctly match.
+By default, the pod template within the deployment only defines a single `app: {{
+template "common.fullname" . }}` label as this is also used as the selector. The
+standard set of labels are not used as some of these can change during upgrades,
+which causes the replica sets and pods to not correctly match.
 
 Example use:
 
 ```yaml
 {{- template "common.deployment" (list . "mychart.deployment") -}}
-{{- define "mychart.deployment" }}
+{{- define "mychart.deployment" -}}
 ## Define overrides for your Deployment resource here, e.g.
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -188,13 +187,13 @@ within a `Deployment` or `ReplicaSet`. It holds the following defaults:
     pullPolicy: IfNotPresent
   ```
 - Exposes the named port `http` as port 80
-- Lays out the resources spec using `.Values.resources`
+- Lays out the compute resources using `.Values.resources`
 
 Example use:
 
 ```yaml
 {{- template "common.deployment" (list . "mychart.deployment") -}}
-{{- define "mychart.deployment" }}
+{{- define "mychart.deployment" -}}
 ## Define overrides for your Deployment resource here, e.g.
 spec:
   template:
@@ -204,9 +203,6 @@ spec:
 {{- end -}}
 {{- define "mychart.deployment.container" -}}
 ## Define overrides for your Container here, e.g.
-# ports:
-# - name: http
-#   containerPort: 80
 livenessProbe:
   httpGet:
     path: /
@@ -218,8 +214,352 @@ readinessProbe:
 {{- end -}}
 ```
 
-The above declares a `Deployment` with a single `Container`.
+The above example creates a `Deployment` resource which makes use of the
+`common.container` template to populate the PodSpec's container list. The usage
+of this template is similar to the other resources, you must define and
+reference a template that contains overrides for the container object.
+
+The most important part of a container definition is the image you want to run.
+As mentioned above, this is derived from `.Values.image` by default. It is a
+best practice to define the image, tag and pull policy in your charts' values as
+this makes it easy for an operator to change the image registry, or use a
+specific tag or version. Another example of configuration that should be exposed
+to chart operators is the container's required compute resources, as this is
+also very specific to an operators environment. An example `values.yaml` for
+your chart could look like:
+
+```yaml
+image:
+  repository: nginx
+  tag: stable
+  pullPolicy: IfNotPresent
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 ```
+
+The output of running the above values through the earlier template is:
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: release-name-deployment
+    chart: deployment-0.1.0
+    heritage: Tiller
+    release: release-name
+  name: release-name-deployment
+spec:
+  template:
+    metadata:
+      labels:
+        app: release-name-deployment
+    spec:
+      containers:
+      - image: nginx:stable
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+        name: deployment
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+```
+
+## `common.configmap`
+
+The `common.configmap` template creates an empty `ConfigMap` resource that you
+can override with your configuration.
+
+Example use:
+
+```yaml
+{{- template "common.configmap" (list . "mychart.configmap") -}}
+{{- define "mychart.configmap" -}}
+data:
+  zeus: cat
+  athena: cat
+  julius: cat
+  one: |-
+    {{ .Files.Get "file1.txt" }}
+{{- end -}}
+```
+
+Output:
+
+```yaml
+apiVersion: v1
+data:
+  athena: cat
+  julius: cat
+  one: This is a file.
+  zeus: cat
+kind: ConfigMap
+metadata:
+  labels:
+    app: release-name-configmap
+    chart: configmap-0.1.0
+    heritage: Tiller
+    release: release-name
+  name: release-name-configmap
+```
+
+## `common.secret`
+
+The `common.secret` template creates an empty `Secret` resource that you
+can override with your secrets.
+
+Example use:
+
+```yaml
+{{- template "common.secret" (list . "mychart.secret") -}}
+{{- define "mychart.secret" -}}
+data:
+  zeus: {{ print "cat" | b64enc }}
+  athena: {{ print "cat" | b64enc }}
+  julius: {{ print "cat" | b64enc }}
+  one: |-
+    {{ .Files.Get "file1.txt" | b64enc }}
+{{- end -}}
+```
+
+Output:
+
+```yaml
+apiVersion: v1
+data:
+  athena: Y2F0
+  julius: Y2F0
+  one: VGhpcyBpcyBhIGZpbGUuCg==
+  zeus: Y2F0
+kind: Secret
+metadata:
+  labels:
+    app: release-name-secret
+    chart: secret-0.1.0
+    heritage: Tiller
+    release: release-name
+  name: release-name-secret
+type: Opaque
+```
+
+## `common.ingress`
+
+The `common.ingress` template is designed to give you a well-defined `Ingress`
+resource, that can be configured using `.Values.ingress`. An example values file
+that can be used to configure the `Ingress` resource is:
+
+```yaml
+ingress:
+  hosts:
+  - chart-example.local
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+  tls:
+  - secretName: chart-example-tls
+    hosts:
+    - chart-example.local
+```
+
+Example use:
+
+```yaml
+{{- template "common.ingress" (list . "mychart.ingress") -}}
+{{- define "mychart.ingress" -}}
+{{- end -}}
+```
+
+Output:
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+  labels:
+    app: release-name-ingress
+    chart: ingress-0.1.0
+    heritage: Tiller
+    release: release-name
+  name: release-name-ingress
+spec:
+  rules:
+  - host: chart-example.local
+    http:
+      paths:
+      - backend:
+          serviceName: release-name-ingress
+          servicePort: 80
+        path: /
+  tls:
+  - hosts:
+    - chart-example.local
+    secretName: chart-example-tls
+```
+
+## `common.persistentvolumeclaim`
+
+`common.persistentvolumeclaim` can be used to easily add a
+`PersistentVolumeClaim` resource to your chart that can be configured using
+`.Values.persistence`:
+
+|           Value           |                                               Description                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| persistence.enabled       | Whether or not to claim a persistent volume. If false, `common.volume.pvc` will use an emptyDir instead |
+| persistence.storageClass  | `StorageClass` name                                                                                     |
+| persistence.accessMode    | Access mode for persistent volume                                                                       |
+| persistence.size          | Size of persistent volume                                                                               |
+| persistence.existingClaim | If defined, `PersistentVolumeClaim` is not created and `common.volume.pvc` helper uses this claim       |
+
+An example values file that can be used to configure the
+`PersistentVolumeClaim` resource is:
+
+```yaml
+persistence:
+  enabled: true
+  storageClass: fast
+  accessMode: ReadWriteOnce
+  size: 8Gi
+```
+
+Example use:
+
+```yaml
+{{- template "common.persistentvolumeclaim" (list . "mychart.persistentvolumeclaim") -}}
+{{- define "mychart.persistentvolumeclaim" -}}
+{{- end -}}
+```
+
+Output:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    volume.beta.kubernetes.io/storage-class: fast
+  labels:
+    app: release-name-persistentvolumeclaim
+    chart: persistentvolumeclaim-0.1.0
+    heritage: Tiller
+    release: release-name
+  name: release-name-persistentvolumeclaim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+```
+
+## Partial API Objects
+
+When writing Kubernetes resources, you may find the following helpers useful to
+construct parts of the spec.
+
+### EnvVar
+
+Use the EnvVar helpers within a container spec to simplify specifying key-value
+environment variables or referencing secrets as values.
+
+Example Use:
+
+```yaml
+{{- template "common.deployment" (list . "mychart.deployment") -}}
+{{- define "mychart.deployment" -}}
+spec:
+  template:
+    spec:
+      containers:
+      - {{ template "common.container" (list . "mychart.deployment.container") }}
+{{- end -}}
+{{- define "mychart.deployment.container" -}}
+{{- $fullname := include "common.fullname" . -}}
+env:
+- {{ template "common.envvar.value" (list "ZEUS" "cat") }}
+- {{ template "common.envvar.secret" (list "ATHENA" "secret-name" "athena") }}
+{{- end -}}
+```
+
+Output:
+
+```yaml
+...
+    spec:
+      containers:
+      - env:
+        - name: ZEUS
+          value: cat
+        - name: ATHENA
+          valueFrom:
+            secretKeyRef:
+              key: athena
+              name: secret-name
+...
+```
+
+### Volume
+
+Use the Volume helpers within a `Deployment` spec to help define ConfigMap and
+PersistentVolumeClaim volumes.
+
+Example Use:
+
+```yaml
+{{- template "common.deployment" (list . "mychart.deployment") -}}
+{{- define "mychart.deployment" -}}
+spec:
+  template:
+    spec:
+      volumes:
+      - {{ template "common.volume.configMap" (list "config" "configmap-name") }}
+      - {{ template "common.volume.pvc" (list "data" "pvc-name" .Values.persistence) }}
+{{- end -}}
+```
+
+Output:
+
+```yaml
+...
+    spec:
+      volumes:
+      - configMap:
+          name: configmap-name
+        name: config
+      - name: data
+        persistentVolumeClaim:
+          claimName: pvc-name
+...
+```
+
+The `common.volume.pvc` helper uses the following configuration from the `.Values.persistence` object:
+
+|           Value           |                      Description                      |
+| ------------------------- | ----------------------------------------------------- |
+| persistence.enabled       | If false, creates an `emptyDir` instead               |
+| persistence.existingClaim | If set, uses this instead of the passed in claim name |
+
 ## Utilities
 
 ### `common.fullname`
@@ -441,28 +781,3 @@ chartref: foo-1.2.3-beta.55_1234
 ```
 
 (Note that `+` is an illegal character in label values)
-
-### `common.port` and `common.port.string`
-
-`common.port` takes a port in either numeric or colon-numeric (":8080") syntax
-and converts it to an integer.
-
-`common.port.string` does the same, but formats the result as a string (in quotes)
-to satisfy a few places in Kubernetes where ports are passed as strings.
-
-Example template:
-
-```yaml
-port1: {{ template "common.port" 1234 }}
-port2: {{ template "common.port" "4321" }}
-port3: {{ template "common.port" ":8080" }}
-portString: {{ template "common.port.string" 1234 }}
-```
-
-Example output:
-```yaml
-port1: 1234
-port2: 4321
-port3: 8080
-portString: "1234"
-```

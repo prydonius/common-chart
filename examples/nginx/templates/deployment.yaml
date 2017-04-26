@@ -1,5 +1,5 @@
 {{- template "common.deployment" (list . "nginx.deployment") -}}
-{{- define "nginx.deployment" }}
+{{- define "nginx.deployment" -}}
 ## Define overrides for your Deployment resource here, e.g.
 spec:
   replicas: {{ .Values.replicaCount }}
