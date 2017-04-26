@@ -10,7 +10,6 @@ making it faster for you to write charts.
 
 A few tips for working with Common:
 
-- Use `{{ include "some.template" | indent $number }}` to produce formatted output.
 - Be careful when using functions that generate random data (like `common.fullname.unique`).
   They may trigger unwanted upgrades or have other side effects.
 
