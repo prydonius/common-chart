@@ -6,7 +6,8 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ template "common.fullname" . }}
+        app: {{ template "common.name" . }}
+        release: {{ .Release.Name | quote }}
     spec:
       containers:
       -

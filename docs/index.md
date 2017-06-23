@@ -65,7 +65,7 @@ following defaults:
 
 - Service type (ClusterIP, NodePort, LoadBalancer) made configurable by `.Values.service.type`
 - Named port `http` configured on port 80
-- Selector set to `app: {{ template "common.fullname" }}` to match the default used in the `Deployment` resource
+- Selector set to `app: {{ template "common.name" }}, release: {{ .Release.Name | quote }}` to match the default used in the `Deployment` resource
 
 Example template:
 
@@ -99,8 +99,6 @@ spec:
   - name: www
     port: 80
     targetPort: 8080
-  selector:                                     # this is overrides the value of the default app selector
-    app: {{ template "common.fullname" . }}-www
 {{- end -}}
 ```
 
@@ -117,7 +115,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: release-name-service
+    app: service
     chart: service-0.1.0
     heritage: Tiller
     protocol: mail
@@ -132,7 +130,8 @@ spec:
     port: 993
     targetPort: 993
   selector:
-    app: release-name-service
+    app: service
+    release: release-name
     protocol: mail
   type: ClusterIP
 ---
@@ -140,7 +139,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: release-name-service
+    app: service
     chart: service-0.1.0
     heritage: Tiller
     protocol: www
@@ -151,8 +150,6 @@ spec:
   - name: www
     port: 80
     targetPort: 8080
-  selector:
-    app: release-name-service-www
   type: ClusterIP
 ```
 
@@ -161,8 +158,8 @@ spec:
 The `common.deployment` template defines a basic `Deployment`. Underneath the
 hood, it uses `common.container` (see next section).
 
-By default, the pod template within the deployment only defines a single `app: {{
-template "common.fullname" . }}` label as this is also used as the selector. The
+By default, the pod template within the deployment defines the labels `app: {{ template "common.name" . }}`
+and `release: {{ .Release.Name | quote }` as this is also used as the selector. The
 standard set of labels are not used as some of these can change during upgrades,
 which causes the replica sets and pods to not correctly match.
 
@@ -253,7 +250,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   labels:
-    app: release-name-deployment
+    app: deployment
     chart: deployment-0.1.0
     heritage: Tiller
     release: release-name
@@ -262,7 +259,7 @@ spec:
   template:
     metadata:
       labels:
-        app: release-name-deployment
+        app: deployment
     spec:
       containers:
       - image: nginx:stable
@@ -319,7 +316,7 @@ data:
 kind: ConfigMap
 metadata:
   labels:
-    app: release-name-configmap
+    app: configmap
     chart: configmap-0.1.0
     heritage: Tiller
     release: release-name
@@ -357,7 +354,7 @@ data:
 kind: Secret
 metadata:
   labels:
-    app: release-name-secret
+    app: secret
     chart: secret-0.1.0
     heritage: Tiller
     release: release-name
@@ -402,7 +399,7 @@ metadata:
     kubernetes.io/ingress.class: nginx
     kubernetes.io/tls-acme: "true"
   labels:
-    app: release-name-ingress
+    app: ingress
     chart: ingress-0.1.0
     heritage: Tiller
     release: release-name
@@ -464,7 +461,7 @@ metadata:
   annotations:
     volume.beta.kubernetes.io/storage-class: fast
   labels:
-    app: release-name-persistentvolumeclaim
+    app: persistentvolumeclaim
     chart: persistentvolumeclaim-0.1.0
     heritage: Tiller
     release: release-name
@@ -578,7 +575,7 @@ name: {{ template "common.fullname" . }}
 The following different values can influence it:
 
 ```yaml
-# By default, fullname uses '{{ .Release.Name }}-{{.Chart.Name}}. This
+# By default, fullname uses '{{ .Release.Name }}-{{ .Chart.Name }}'. This
 # overrides that and uses the given string instead.
 fullnameOverride: "some-name"
 
@@ -639,6 +636,54 @@ It is also impacted by the prefix and suffix definitions, as well as by
 
 Note that the effective maximum length of this function is 63 characters, not 54.
 
+### `common.name`
+
+The `common.name` template generates a name suitable for the `app` label. It is used like this:
+
+```yaml
+app: {{ template "common.name" . }}
+```
+
+The following different values can influence it:
+
+```yaml
+# By default, name uses '{{ .Chart.Name }}'. This
+# overrides that and uses the given string instead.
+nameOverride: "some-name"
+
+# This adds a prefix
+namePrefix: "pre-"
+# This appends a suffix
+nameSuffix: "-suf"
+
+# Global versions of the above
+global:
+  namePrefix: "pp-"
+  nameSuffix: "-ps"
+```
+
+Example output:
+
+```yaml
+---
+# with the values above
+name: pp-pre-some-name-suf-ps
+
+---
+# the default, for chart "wordpress"
+name: wordpress
+```
+
+Output of this function is truncated at 54 characters, which leaves 9 additional
+characters for customized overriding. Thus you can easily extend this name
+in your own charts:
+
+```yaml
+{{- define "my.name" -}}
+  {{ template "common.name" . }}-my-stuff
+{{- end -}}
+```
+
 ### `common.metadata`
 
 The `common.metadata` helper generates the `metadata:` section of a Kubernetes
@@ -646,7 +691,7 @@ resource.
 
 This takes three objects:
   - .top: top context
-  - .nameOverride: override the fullname with this name
+  - .fullnameOverride: override the fullname with this name
   - .metadata
     - .labels: key/value list of labels
     - .annotations: key/value list of annotations
@@ -659,7 +704,7 @@ Example template:
 ```yaml
 {{ template "common.metadata" (dict "top" . "metadata" .Values.bio) }}
 ---
-{{ template "common.metadata" (dict "top" . "metadata" .Values.pet "nameOverride" .Values.pet.nameOverride) }}
+{{ template "common.metadata" (dict "top" . "metadata" .Values.pet "fullnameOverride" .Values.pet.fullnameOverride) }}
 ```
 
 Example values:
@@ -677,7 +722,7 @@ bio:
   hook: pre-install
 
 pet:
-  nameOverride: Zeus
+  fullnameOverride: Zeus
 
 ```
 
@@ -687,7 +732,7 @@ Example output:
 metadata:
   name: release-name-metadata
   labels:
-    app: release-name-metadata
+    app: metadata
     heritage: "Tiller"
     release: "RELEASE-NAME"
     chart: metadata-0.1.0
@@ -702,7 +747,7 @@ metadata:
 metadata:
   name: Zeus
   labels:
-    app: release-name-metadata
+    app: metadata
     heritage: "Tiller"
     release: "RELEASE-NAME"
     chart: metadata-0.1.0
@@ -745,7 +790,7 @@ Example usage:
 Example output:
 
 ```yaml
-app: release-name-labelizer
+app: labelizer
 heritage: "Tiller"
 release: "RELEASE-NAME"
 chart: labelizer-0.1.0
